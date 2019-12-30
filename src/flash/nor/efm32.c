@@ -483,6 +483,7 @@ static int efm32x_erase(struct flash_bank *bank, int first, int last)
 	}
 
 	for (i = first; i <= last; i++) {
+		//LOG_INFO("bank->base = 0x%08" PRIx32, bank->base);
 		ret = efm32x_erase_page(bank, bank->sectors[i].offset);
 		if (ERROR_OK != ret)
 			LOG_ERROR("Failed to erase page %d", i);
@@ -961,7 +962,6 @@ static int efm32x_probe(struct flash_bank *bank)
 	struct efm32_info efm32_mcu_info;
 	int ret;
 	int i;
-	uint32_t base_address = 0x00000000;
 	char buf[256];
 
 	efm32x_info->probed = 0;
@@ -974,6 +974,13 @@ static int efm32x_probe(struct flash_bank *bank)
 	ret = efm32x_decode_info(&efm32_mcu_info, buf, sizeof(buf));
 	if (ERROR_OK != ret)
 		return ret;
+
+	if ((bank->base == EFM32_MSC_USER_DATA) ||
+		bank->base == EFM32_MSC_LOCK_BITS) {
+		efm32_mcu_info.flash_sz_kib = 1;
+		efm32_mcu_info.page_size = 1024;
+		LOG_INFO("Hacking....");
+	}
 
 	LOG_INFO("detected part: %s", buf);
 	LOG_INFO("flash size = %dkbytes", efm32_mcu_info.flash_sz_kib);
@@ -991,7 +998,6 @@ static int efm32x_probe(struct flash_bank *bank)
 		bank->sectors = NULL;
 	}
 
-	bank->base = base_address;
 	bank->size = (num_pages * efm32_mcu_info.page_size);
 	bank->num_sectors = num_pages;
 
